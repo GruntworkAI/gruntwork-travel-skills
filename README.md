@@ -1,5 +1,8 @@
 # gruntwork-travel-skills
 
+[![Latest release](https://img.shields.io/github/v/release/GruntworkAI/gruntwork-travel-skills?label=latest&sort=semver)](https://github.com/GruntworkAI/gruntwork-travel-skills/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+
 A family of Claude skills that turn travel confirmations into clean, accurate
 calendar events. Each skill handles one domain (flights today; hotels and ground
 transport planned) and shares a single setup: one dedicated calendar, one config,
