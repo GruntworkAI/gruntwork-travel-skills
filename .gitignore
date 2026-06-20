@@ -1,0 +1,25 @@
+# Personal configuration — shared across all skills; never publish it
+config.json
+
+# Secrets & credentials (defense in depth for a public repo)
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.credentials
+credentials.json
+service-account*.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS / editor cruft
+.DS_Store
+*.swp
+.idea/
+.vscode/

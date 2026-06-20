@@ -1,0 +1,38 @@
+{
+  "_comment": "Family config for gruntwork-travel-skills. Copy to config.json and fill REPLACE_ME values, or let a skill's first-run interview create it. 'shared' is set up once and used by every skill (calendars, targets, home). Each skill reads 'shared' plus its own section (e.g. 'flights'). config.json is gitignored so personal values are never published.",
+  "active_profile": "default",
+  "profiles": {
+    "default": {
+      "shared": {
+        "calendars": {
+          "personal": {
+            "connector": "google",
+            "calendar_name": "REPLACE_ME_personal_calendar"
+          },
+          "work": {
+            "connector": "outlook",
+            "calendar_name": "REPLACE_ME_work_calendar"
+          }
+        },
+        "default_targets": [
+          "personal"
+        ],
+        "home_label": "Home"
+      },
+      "flights": {
+        "home_airports": [],
+        "home_to_airport_ride_min": 60,
+        "default_ride_min": 60,
+        "deplane_to_curb_min": 30,
+        "arrival_cushion_min": 90,
+        "layover_max_min": 240,
+        "layover_ambiguous_max_min": 360,
+        "ground_transport_mode": "Uber"
+      },
+      "lodging": {
+        "default_checkin_time": "16:00",
+        "default_checkout_time": "11:00"
+      }
+    }
+  }
+}
