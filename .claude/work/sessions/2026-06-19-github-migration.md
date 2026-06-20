@@ -72,3 +72,69 @@ PUBLIC.
   once populated.
 - Branch-protection / PR-template baseline not set up (offered, not done).
 - `cars-to-calendar` is the planned 3rd skill that would trigger extracting `core/`.
+
+---
+
+# Part 2: Packaging + self-hosted runtime support (same session)
+
+Two open questions from the user after the migration: (1) ship a drop-in zip for
+Claude Desktop users without git/dev metadata, and (2) what's needed for OpenClaw /
+ZeroClaw. Both shipped via **PR #1** (squash-merged) → tag **v0.1.0** → Release.
+
+## 1. Desktop installer packaging
+
+- **`scripts/package.sh [version]`** — builds `dist/<name>-<version>.zip` from an
+  **explicit allowlist** (README, LICENSE, config.example.json, core/, the two skill
+  dirs). Excludes `.git/`, `.github/`, `.claude/`, `CLAUDE.md`, `docs/`, `dist/`,
+  and stray `config.json`/`__pycache__`/`.DS_Store`. `dist/` is gitignored.
+- **`.github/workflows/release.yml`** — on a `v*` tag push, runs the script and
+  `gh release create` with the zip attached + auto-notes (`contents: write`).
+- README **Install** split: Desktop downloads the Release zip; filesystem runtimes
+  clone. Repo layout + CLAUDE.md document the build/release process.
+
+## 2. OpenClaw / ZeroClaw
+
+The skills were *already* runtime-agnostic by design (author explicitly named
+OpenClaw/ZeroClaw; tools discovered at runtime, no hardcoded names; config-path
+difference already handled). So no code changes for the happy path — the work was
+environmental + the one real gap (unattended writes):
+
+- **`shared.auto_approve` config block** — disabled by default. When enabled, bounds
+  unattended writes: `calendars` allowlist, `max_events_per_run`, `future_dated_only`,
+  `updates_via_marker_only`.
+- **Both SKILL.md propose-gates honor it** — no human + auto_approve off ⇒ surface
+  the proposal and stop; never write blind. Interactive runtimes ignore the block.
+- **README "Running in OpenClaw / ZeroClaw"** — stand up the calendar MCP server(s)
+  + credentials, run a one-time round-trip semantics validation (all-day exclusive
+  end + cross-zone offset), then opt into auto_approve with tight guardrails.
+
+## Release mechanism (how to cut the next one)
+
+Tag-driven, never hand-built:
+
+```bash
+git tag -a vX.Y.Z -m "vX.Y.Z — summary"   # from main, after release PR merged
+git push origin vX.Y.Z                     # the push fires the workflow
+gh run list --limit 3                       # confirm success
+gh release view vX.Y.Z --json assets        # confirm zip attached
+```
+
+Tag must be semver `vX.Y.Z` (the `v*` filter + asset filename depend on it). Fix
+forward with a new tag; never rewrite a published one. Full process is in CLAUDE.md
+("Releases & packaging").
+
+## Verified
+
+- CI-built v0.1.0 asset downloaded and audited: 16 files, no dev/git metadata, no
+  `config.json`, no `docs/`. Release live at
+  https://github.com/GruntworkAI/gruntwork-travel-skills/releases/tag/v0.1.0
+- `main` history: `ab28ced` import → `ca42514` session note → `26193b3` feat (#1).
+
+## Remaining follow-ups (Part 2)
+
+- **Smoke-test against a real Google Calendar MCP server** to validate the
+  round-trip semantics step (all-day exclusive end + cross-zone offset) before
+  anyone relies on unattended `auto_approve` mode. Not yet done.
+- Pre-existing README "Design notes" still says shared code is deferred "until a
+  *second* skill" — slightly stale now that there are two (defer is really to the
+  third). Minor; left as-is.
