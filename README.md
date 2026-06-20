@@ -50,9 +50,17 @@ must be authorized from Claude.ai / Desktop.
 
 ### 3. Install
 
-Place this repo where your runtime loads skills. The skills live in sibling
-directories (`flights-to-calendar/`, etc.); the shared `config.json` lives at the
-repo root.
+**Claude Desktop (drop-in):** download the latest
+`gruntwork-travel-skills-vX.Y.Z.zip` from the
+[Releases page](https://github.com/GruntworkAI/gruntwork-travel-skills/releases) —
+it contains just the skills, setup, and config template (no git or dev metadata) —
+and unzip it where Desktop loads skills.
+
+**Claude Code / OpenClaw / ZeroClaw (filesystem runtimes):** clone the repo where
+your runtime loads skills. The skills live in sibling directories
+(`flights-to-calendar/`, etc.); the shared `config.json` lives at the repo root.
+See [Running in OpenClaw / ZeroClaw](#running-in-openclaw--zeroclaw) below for the
+self-hosted specifics.
 
 ### 4. Configure (once, shared by every skill)
 
@@ -94,6 +102,53 @@ never published.
 
 ---
 
+## Running in OpenClaw / ZeroClaw
+
+These skills are runtime-agnostic by design — each `SKILL.md` discovers the
+calendar tools at runtime and never hardcodes tool names — so they run in a
+self-hosted runtime as-is. What differs from Claude Desktop is the *environment*
+around them, not the skills:
+
+**1. You provide the calendar tools.** Desktop's hosted Google / Microsoft 365
+connectors don't exist in a self-hosted runtime. Stand up a Google Calendar (and,
+if you use `work` targets, an Outlook / M365) **MCP server** in the runtime and
+authorize it with your own OAuth credentials or service account. The skills will
+discover and use whatever create/update/search-event tools the runtime exposes;
+your job is to make those tools present. The config's logical `connector` label
+(`"google"` / `"outlook"`) maps to whichever discovered tool serves that calendar
+— the names need not match literally.
+
+**2. Validate the calendar semantics once.** The skills depend on two behaviors
+that MCP servers expose differently: all-day events stored as a *date* type with
+an exclusive end date (lodging), and timed flight events that carry an explicit
+UTC offset so a cross-timezone flight renders correctly. Before trusting an
+unattended agent, do one round-trip test against your server — create a lodging
+all-day span and a cross-zone flight, then read them back and confirm the dates
+and local times render as written. If your server normalizes times to one zone or
+drops the all-day date type, fix that at the server before going live.
+
+**3. Decide the unattended-write policy.** Every skill *proposes before it writes*
+and waits for a human to confirm. An always-on agent has no human in the loop, so
+that gate is governed by `shared.auto_approve` in `config.json`:
+
+```jsonc
+"auto_approve": {
+  "enabled": false,             // default: still require confirmation; nothing auto-writes
+  "calendars": ["personal"],    // auto-writes allowed only to these logical targets
+  "max_events_per_run": 20,     // refuse a run that would write more (runaway-parse guard)
+  "future_dated_only": true,    // never auto-touch past-dated events
+  "updates_via_marker_only": false  // true = only update marker-matched events, never create
+}
+```
+
+With `enabled: false` (the default, and the only behavior in Desktop / Claude
+Code), an unattended run **surfaces the proposal and stops** rather than writing
+blind. Turn it on only once you've validated step 2, and keep the guardrails tight
+— the dedicated travel calendar is what bounds the blast radius. A run that would
+breach a guardrail stops and reports instead of writing.
+
+---
+
 ## Repo layout
 
 ```
@@ -112,7 +167,13 @@ gruntwork-travel-skills/
     SKILL.md
     README.md
     scripts/
+  scripts/package.sh   <- repo tooling: builds the Desktop installer zip (not shipped)
+  .github/workflows/   <- repo tooling: cuts a Release on a vX.Y.Z tag (not shipped)
 ```
+
+The Desktop installer zip (from Releases) contains only the skills, `README.md`,
+`LICENSE`, `config.example.json`, and `core/` — the repo tooling above and the
+`.claude/` working directory are stripped out.
 
 ---
 

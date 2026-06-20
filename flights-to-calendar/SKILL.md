@@ -226,6 +226,16 @@ hotel/origin location (the script's `needs_input`), and the ground assumptions
 (Uber, ride durations, home/hotel origin). Ask the user to confirm or correct,
 then proceed.
 
+**Unattended runtimes (OpenClaw / ZeroClaw).** When there is no human to confirm,
+this gate is governed by `shared.auto_approve` in config. If it is absent or
+`enabled` is false (the default, and always the case in Desktop / Claude Code),
+**do not write** — surface the proposal and stop. Only when `enabled` is true may
+you proceed without a human, and then only within its guardrails: write solely to
+the listed `calendars`, refuse if the set exceeds `max_events_per_run`, skip any
+event in the past when `future_dated_only` is true, and when
+`updates_via_marker_only` is true write only marker-matched updates (never create
+new events). If a run would breach a guardrail, stop and report instead of writing.
+
 ### 4. Write, then reconcile (idempotently)
 
 Write programmatically as a loop over the event list, not by hand-issuing calls.
