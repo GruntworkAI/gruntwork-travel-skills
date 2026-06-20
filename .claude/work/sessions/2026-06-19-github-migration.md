@@ -132,9 +132,55 @@ forward with a new tag; never rewrite a published one. Full process is in CLAUDE
 
 ## Remaining follow-ups (Part 2)
 
-- **Smoke-test against a real Google Calendar MCP server** to validate the
-  round-trip semantics step (all-day exclusive end + cross-zone offset) before
-  anyone relies on unattended `auto_approve` mode. Not yet done.
 - Pre-existing README "Design notes" still says shared code is deferred "until a
   *second* skill" — slightly stale now that there are two (defer is really to the
   third). Minor; left as-is.
+
+---
+
+# Part 3: Calendar round-trip smoke test (same session)
+
+Ran a real round-trip against the **claude.ai-hosted Google Calendar MCP connector**
+(the same connector class a self-hosted runtime would wire up). Created, read back,
+and deleted two test events.
+
+**Calendar choice (matters):** used the **Incognito** calendar, NOT **Travel Agent**
+— Travel Agent is already connected to Flighty, so test events there would have
+propagated into Flighty. Incognito is isolated. (First attempt also wrongly used a
+date range that overlapped real trips; user redirected to an imaginary LAX→Jackson
+Hole trip Jun 22–24 2026.) Both test events deleted; calendar verified clean.
+
+## Results
+
+- **Flight cross-timezone — PASS.** Sent LAX→JAC with arrival offset `-06:00` (MDT)
+  and display `timeZone: America/Los_Angeles`. Server stored the instant and
+  re-expressed the end as `10:45-07:00` (PDT) — same instant as 11:45 MDT — duration
+  preserved 2h45m. Confirms the flights skill's "instant + duration exact regardless
+  of display zone" design works on this connector. The connector's `timeZone`
+  overrides the offset *for display only*, which is exactly what the skill wants
+  (event renders in departure zone; true local arrival lives in the body).
+- **Lodging all-day exclusive end — PASS.** `start.date 2026-06-22` /
+  `end.date 2026-06-25` (exclusive) → renders Jun 22–24 inclusive, stored as a true
+  date-type all-day event.
+
+## Finding → fix
+
+**This connector rejects date-only all-day values** (`2026-06-22`) with
+`start_time must be an ISO 8601 timestamp`; the **full midnight timestamp**
+(`2026-06-22T00:00:00` + allDay) is accepted and stored as date-type.
+
+- `build_lodging_events.py` **already** emits the midnight-timestamp form (L133–134),
+  so the code path was never affected.
+- The **by-hand path** in `lodging-to-calendar/SKILL.md` (used when code execution
+  isn't available) said only "start = check-in date" — a model could emit a bare
+  date and fail. Hardened that line to require the full midnight-timestamp form and
+  explain why. (This is the kind of connector-specific nuance the "validate semantics
+  once" step in the OpenClaw/ZeroClaw README is meant to catch.)
+
+## Lesson
+
+Round-trip semantics are connector-specific at the *input-format* level, not just
+the storage level — date-only all-day inputs are valid Google Calendar API but
+rejected by this MCP tool's stricter ISO-8601 requirement. Inline/by-hand skill
+paths must specify the exact wire format, not just the conceptual value, or they
+break on stricter connectors while the script path passes.

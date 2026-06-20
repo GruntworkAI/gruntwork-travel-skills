@@ -98,6 +98,12 @@ python3 scripts/build_lodging_events.py --input stay.json
 If not, build by hand:
 - **Stay (all-day, always):** title `{City} — {detail}`; start = check-in date;
   end = check-out date **+ 1** (all-day flag, midnight ends); hotel/place zone.
+  Send both as **full ISO timestamps at midnight** (`2026-06-22T00:00:00`) with the
+  all-day flag set — **not** a bare `YYYY-MM-DD` date. Some calendar connectors
+  (e.g. the hosted Google Calendar tool) reject a date-only value with
+  "start_time must be an ISO 8601 timestamp"; the midnight-timestamp form is stored
+  as a proper date-type all-day event everywhere. (`build_lodging_events.py` already
+  emits this form.)
 - **Check-in / Check-out (timed, only when `timed`):** 30-minute blocks at the
   check-in/out times on those dates, in the stay's zone.
 
