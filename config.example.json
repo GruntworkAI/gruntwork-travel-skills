@@ -17,7 +17,15 @@
         "default_targets": [
           "personal"
         ],
-        "home_label": "Home"
+        "home_label": "Home",
+        "auto_approve": {
+          "_comment": "Unattended runtimes (OpenClaw / ZeroClaw) ONLY. Default disabled = the skill proposes and waits for a human, as in Desktop / Claude Code (which ignore this block and always confirm). When enabled, a skill may write without asking, but only inside the guardrails below.",
+          "enabled": false,
+          "calendars": ["personal"],
+          "max_events_per_run": 20,
+          "future_dated_only": true,
+          "updates_via_marker_only": false
+        }
       },
       "flights": {
         "home_airports": [],
